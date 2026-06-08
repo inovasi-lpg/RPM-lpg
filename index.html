@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Generator RPD BSKAP</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Source+Sans+3:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+:root {
+  --ink: #1a1f2e;
+  --ink-soft: #3d4663;
+  --ink-muted: #7a859e;
+  --paper: #f4f1eb;
+  --cream: #fffdf8;
+  --accent: #1a4a8a;
+  --accent-light: #2d6bc4;
+  --accent-pale: #e8eef8;
+  --gold: #a07010;
+  --gold-bg: #fdf3d8;
+  --border: #dcd6cc;
+  --shadow: rgba(26,31,46,0.09);
+  --shadow-lg: rgba(26,31,46,0.17);
+  --r: 10px;
+  --r-lg: 16px;
+  --fd: 'Playfair Display', Georgia, serif;
+  --fb: 'Source Sans 3', 'Segoe UI', sans-serif;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 15px; scroll-behavior: smooth; }
+body { background: var(--paper); color: var(--ink); font-family: var(--fb); min-height: 100vh; line-height: 1.6; }
+
+/* ── HEADER ── */
+.hdr {
+  background: var(--ink); color: var(--cream);
+  padding: 14px 28px; display: flex; align-items: center; gap: 14px;
+  position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 14px var(--shadow-lg);
+}
+.hdr-icon { width: 38px; height: 38px; background: var(--accent-light); border-radius: 9px;
+  display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+.hdr h1 { font-family: var(--fd); font-size: 1.15rem; font-weight: 700; line-height: 1.2; }
+.hdr p  { font-size: 0.73rem; color: #9aabc0; margin-top: 1px; }
+.hdr-badge {
+  margin-left: auto; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.18);
+  border-radius: 20px; padding: 3px 10px; font-size: 0.68rem; font-weight: 600;
+  letter-spacing: 0.07em; color: #c8d8f0; white-space: nowrap;
+}
+
+/* ── LAYOUT ── */
+.app { display: grid; grid-template-columns: 400px 1fr; min-height: calc(100vh - 66px); }
+
+/* ── SIDEBAR ── */
+.sidebar {
+  background: var(--cream); border-right: 1px solid var(--border);
+  display: flex; flex-direction: column;
+  height: calc(100vh - 66px); position: sticky; top: 66px; overflow: hidden;
+}
+.sidebar-scroll { flex: 1; overflow-y: auto; padding: 20px 18px 10px; }
+
+/* ── FORM GROUPS ── */
+.fgroup {
+  background: #fff; border: 1.5px solid var(--border); border-radius: var(--r-lg);
+  margin-bottom: 12px; overflow: hidden;
+}
+.fgroup-head {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 14px; background: #f8f6f2;
+  border-bottom: 1px solid var(--border); cursor: pointer;
+  user-select: none;
+}
+.fgroup-head .icon { font-size: 15px; }
+.fgroup-head .label { font-size: 0.78rem; font-weight: 700; color: var(--ink-soft); letter-spacing: 0.03em; flex: 1; }
+.fgroup-head .chev { font-size: 0.7rem; color: var(--ink-muted); transition: transform .2s; }
+.fgroup.open .chev { transform: rotate(180deg); }
+.fgroup-body { display: none; padding: 12px 14px; }
+.fgroup.open .fgroup-body { display: block; }
+
+/* ── FORM FIELDS ── */
+.frow { margin-bottom: 9px; }
+.frow label { display: block; font-size: 0.72rem; font-weight: 600; color: var(--ink-soft);
+  margin-bottom: 3px; letter-spacing: 0.02em; }
+.frow label .req { color: #c0392b; margin-left: 2px; }
+input[type=text], select, textarea {
+  width: 100%; padding: 7px 10px; border: 1.5px solid var(--border); border-radius: 8px;
+  background: #fff; color: var(--ink); font-family: var(--fb); font-size: 0.8rem;
+  transition: border-color .18s, box-shadow .18s; outline: none;
+}
+input:focus, select:focus, textarea:focus {
+  border-color: var(--accent-light); box-shadow: 0 0 0 3px rgba(45,107,196,0.11);
+}
+textarea { resize: vertical; min-height: 58px; }
+.fgrid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.fgrid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+
+/* Checkboxes DPL */
+.dpl-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-top: 2px; }
+.dpl-item {
+  display: flex; align-items: flex-start; gap: 5px;
+  padding: 5px 7px; border: 1.5px solid var(--border); border-radius: 7px;
+  background: #fafafa; cursor: pointer; font-size: 0.68rem; color: var(--ink-soft);
+  line-height: 1.3; transition: all .14s;
+}
+.dpl-item:has(input:checked) { border-color: var(--accent); background: var(--accent-pale); color: var(--accent); font-weight: 600; }
+.dpl-item input { margin-top: 2px; accent-color: var(--accent); flex-shrink: 0; }
+
+/* ── ACTION BAR ── */
+.action-bar {
+  padding: 14px 18px; background: var(--cream); border-top: 1px solid var(--border);
+  display: flex; flex-direction: column; gap: 7px;
+}
+.btn {
+  display: flex; align-items: center; justify-content: center; gap: 7px;
+  padding: 10px 14px; border-radius: var(--r); font-family: var(--fb);
+  font-size: 0.8rem; font-weight: 600; cursor: pointer; border: none;
+  transition: all .18s; letter-spacing: 0.02em;
+}
+.btn-primary { background: var(--accent); color: #fff; box-shadow: 0 2px 8px rgba(26,74,138,.22); }
+.btn-primary:hover { background: var(--accent-light); transform: translateY(-1px); }
+.btn-primary:disabled { background: #9ab0cc; cursor: not-allowed; transform: none; }
+.btn-secondary { background: var(--ink-soft); color: #fff; }
+.btn-secondary:hover { background: var(--ink); }
+.btn-outline { background: transparent; color: var(--accent); border: 1.5px solid var(--accent); }
+.btn-outline:hover { background: var(--accent-pale); }
+.btn-ghost { background: transparent; color: var(--ink-muted); border: 1.5px solid var(--border); }
+.btn-ghost:hover { background: #eeeae3; color: var(--ink); }
+.btn-row { display: flex; gap: 7px; }
+.btn-row .btn { flex: 1; }
+.btn:active { transform: scale(0.97); }
+
+/* ── LOADING SPINNER ── */
+.spinner { display: inline-block; width: 15px; height: 15px; border: 2px solid rgba(255,255,255,.35);
+  border-top-color: #fff; border-radius: 50%; animation: spin .7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.progress-bar-wrap { height: 4px; background: var(--border); border-radius: 2px; margin-top: 6px; overflow: hidden; display: none; }
+.progress-bar { height: 100%; background: var(--accent-light); border-radius: 2px;
+  width: 0; transition: width .4s ease; }
+.progress-bar.indeterminate { animation: indeterminate 1.4s ease infinite; }
+@keyframes indeterminate { 0%{width:0;margin-left:0} 50%{width:60%;margin-left:20%} 100%{width:0;margin-left:100%} }
+
+/* ── MAIN PREVIEW ── */
+.main { padding: 24px 28px; overflow-y: auto; }
+.preview-hdr { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; flex-wrap: wrap; gap: 10px; }
+.preview-hdr h2 { font-family: var(--fd); font-size: 1.05rem; color: var(--ink); }
+.preview-actions { display: flex; gap: 7px; flex-wrap: wrap; }
+.preview-actions .btn { font-size: 0.72rem; padding: 6px 12px; }
+
+/* Placeholder */
+.placeholder { text-align: center; padding: 60px 24px; color: var(--ink-muted); }
+.placeholder .ph-icon { font-size: 56px; margin-bottom: 16px; opacity: 0.35; }
+.placeholder h3 { font-family: var(--fd); font-size: 1.1rem; margin-bottom: 7px; color: var(--ink-soft); }
+.placeholder p { font-size: 0.82rem; max-width: 300px; margin: 0 auto; line-height: 1.7; }
+
+/* ── RPD DOCUMENT ── */
+#rpd-output { background: #fff; border-radius: var(--r-lg); box-shadow: 0 4px 24px var(--shadow), 0 1px 3px rgba(0,0,0,.05);
+  overflow: hidden; border: 1px solid var(--border); display: none; }
+#rpd-output[contenteditable=true] { outline: none; }
+#rpd-output[contenteditable=true]:focus { box-shadow: 0 4px 24px var(--shadow), 0 0 0 2px var(--accent-light); }
+
+.rpd-doc { padding: 32px 36px; max-width: 820px; margin: 0 auto; font-size: 0.86rem; line-height: 1.72; }
+
+.rpd-masthead { text-align: center; margin-bottom: 24px; padding-bottom: 18px; border-bottom: 2px solid var(--ink); }
+.rpd-masthead .gov { font-size: 0.62rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-muted); margin-bottom: 5px; }
+.rpd-masthead h1 { font-family: var(--fd); font-size: 1.4rem; font-weight: 700; line-height: 1.3; }
+.rpd-masthead .sub { font-size: 0.73rem; color: var(--accent); font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; margin-top: 3px; }
+
+.id-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 0.82rem; }
+.id-table td { padding: 5px 8px; vertical-align: top; border: 1px solid #e0dbd3; }
+.id-table td:first-child { width: 33%; font-weight: 600; color: var(--ink-soft); background: #f9f7f3; }
+
+.rpd-sec { margin-bottom: 20px; }
+.rpd-sec-hd { font-family: var(--fd); font-size: 0.9rem; font-weight: 700; color: #fff;
+  background: var(--accent); padding: 6px 13px; border-radius: 7px; margin-bottom: 10px; letter-spacing: 0.03em; }
+.rpd-sub { font-weight: 700; font-size: 0.82rem; color: var(--accent);
+  border-left: 3px solid var(--accent); padding-left: 9px; margin: 10px 0 5px; }
+.rpd-subsub { font-weight: 700; font-size: 0.79rem; color: var(--gold);
+  background: var(--gold-bg); display: inline-block; padding: 2px 9px; border-radius: 5px; margin: 7px 0 4px; }
+
+.rpd-field { margin-bottom: 7px; }
+.rpd-fl { font-weight: 600; font-size: 0.76rem; color: var(--ink-soft); margin-bottom: 1px; }
+.rpd-fv { color: var(--ink); font-size: 0.83rem; padding-left: 5px; border-left: 2px solid var(--border); }
+
+.rpd-box { background: #f9f7f3; border: 1px solid var(--border); border-radius: 7px;
+  padding: 9px 13px; margin-bottom: 7px; font-size: 0.82rem; }
+
+.dpl-tags { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 5px; }
+.dpl-tag { background: var(--accent-pale); color: var(--accent); border: 1px solid rgba(45,107,196,.3);
+  border-radius: 20px; padding: 2px 10px; font-size: 0.72rem; font-weight: 600; }
+
+.sig-row { display: grid; grid-template-columns: 1fr 1fr; gap: 28px;
+  margin-top: 28px; padding-top: 18px; border-top: 1.5px solid var(--border);
+  font-size: 0.8rem; text-align: center; }
+.sig-block p:first-child { font-weight: 600; margin-bottom: 52px; }
+.sig-line { border-bottom: 1.5px solid var(--ink); margin-bottom: 3px; padding-bottom: 1px; font-weight: 600; }
+.sig-nip { color: var(--ink-muted); }
+
+/* ── TOAST ── */
+.toast { position: fixed; bottom: 22px; right: 22px; background: var(--ink); color: #fff;
+  padding: 9px 16px; border-radius: 10px; font-size: 0.79rem; font-weight: 600;
+  box-shadow: 0 4px 16px var(--shadow-lg); z-index: 9999;
+  opacity: 0; transform: translateY(8px); transition: all .28s; pointer-events: none; }
+.toast.show { opacity: 1; transform: translateY(0); }
+
+/* ── STREAMING TEXT ── */
+.stream-cursor::after { content: '▋'; display: inline; animation: blink .6s step-end infinite; }
+@keyframes blink { 50% { opacity: 0; } }
+
+/* ── PRINT ── */
+@media print {
+  .hdr, .sidebar, .preview-hdr, .action-bar { display: none !important; }
+  .app { display: block; }
+  .main { padding: 0; }
+  #rpd-output { box-shadow: none; border: none; border-radius: 0; display: block !important; }
+  .rpd-doc { padding: 16px; }
+  body { background: #fff; }
+}
+
+/* ── MOBILE ── */
+@media (max-width: 820px) {
+  .app { display: flex; flex-direction: column-reverse; }
+  .sidebar { position: static; height: auto; overflow: visible; border-right: none; border-top: 1px solid var(--border); }
+  .sidebar-scroll { overflow: visible; }
+  .main { padding: 14px; }
+  .action-bar { position: static; }
+  .rpd-doc { padding: 16px 14px; }
+  .sig-row { grid-template-columns: 1fr; gap: 16px; }
+  .fgrid2, .fgrid3 { grid-template-columns: 1fr; }
+  .hdr { padding: 10px 14px; }
+  .hdr p, .hdr-badge { display: none; }
+  .dpl-grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="hdr">
+  <div class="hdr-icon">📋</div>
+  <div>
+    <h1>Generator RPD BSKAP</h1>
+    <p>Rencana Pembelajaran Mendalam — Berbasis Deep Learning</p>
+  </div>
+  <div class="hdr-badge">AI-Powered</div>
+</header>
+
+<div class="app">
+
+  <!-- ══ SIDEBAR FORM ══ -->
+  <aside class="sidebar">
+    <div class="sidebar-scroll">
+
+      <!-- 1. IDENTITAS DOKUMEN -->
+      <div class="fgroup open" id="grp-identitas">
+        <div class="fgroup-head" onclick="toggleGroup('identitas')">
+          <span class="icon">🏫</span>
+          <span class="label">Identitas Dokumen</span>
+          <span class="chev">▼</span>
+        </div>
+        <div class="fgroup-body">
+          <div class="fgrid2">
+            <div class="frow"><label>Nama Penyusun <span class="req">*</span></label><input type="text" id="f-penyusun" placeholder="cth. Budi Santoso, S.Pd."></div>
+            <div class="frow"><label>Nama Kepala Sekolah</label><input type="text" id="f-kepsek" placeholder="cth. Dra. Hj. Siti Aminah, M.Pd."></div>
+          </div>
+          <div class="frow"><label>Asal Sekolah</label><input type="text" id="f-sekolah" placeholder="cth. SMP Negeri 3 Bandung"></div>
+          <div class="fgrid2">
+            <div class="frow"><label>Tahun Pelajaran</label><input type="text" id="f-tahun" placeholder="2025/2026"></div>
+            <div class="frow"><label>Semester</label>
+              <select id="f-semester"><option value="Ganjil">Ganjil</option><option value="Genap">Genap</option></select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. PARAMETER UTAMA -->
+      <div class="fgroup open" id="grp-param">
+        <div class="fgroup-head" onclick="toggleGroup('param')">
+          <span class="icon">📚</span>
+          <span class="label">Parameter Utama</span>
+          <span class="chev">▼</span>
+        </div>
+        <div class="fgroup-body">
+          <div class="fgrid2">
+            <div class="frow"><label>Mata Pelajaran <span class="req">*</span></label><input type="text" id="f-mapel" placeholder="cth. IPA, Matematika"></div>
+            <div class="frow"><label>Kelas</label><input type="text" id="f-kelas" placeholder="cth. VIII / X"></div>
+          </div>
+          <div class="fgrid3">
+            <div class="frow"><label>Fase</label>
+              <select id="f-fase"><option value="">Pilih</option><option>Fondasi</option><option>A</option><option>B</option><option>C</option><option>D</option><option>E</option><option>F</option></select>
+            </div>
+            <div class="frow" style="grid-column:span 2"><label>Alokasi Waktu</label><input type="text" id="f-waktu" placeholder="cth. 3 × 40 menit (3 JP)"></div>
+          </div>
+          <div class="frow"><label>Topik / Elemen <span class="req">*</span></label><input type="text" id="f-topik" placeholder="cth. Sistem Pencernaan pada Manusia"></div>
+          <div class="frow"><label>Tujuan Pembelajaran <span class="req">*</span></label><textarea id="f-tp" rows="3" placeholder="Tuliskan tujuan pembelajaran yang ingin dicapai..."></textarea></div>
+        </div>
+      </div>
+
+      <!-- 3. KONTEKS SISWA & PROFIL -->
+      <div class="fgroup open" id="grp-konteks">
+        <div class="fgroup-head" onclick="toggleGroup('konteks')">
+          <span class="icon">👥</span>
+          <span class="label">Konteks Siswa &amp; Profil</span>
+          <span class="chev">▼</span>
+        </div>
+        <div class="fgroup-body">
+          <div class="frow"><label>Target Siswa</label><input type="text" id="f-target" placeholder="cth. 32 siswa, kemampuan heterogen, kelas reguler"></div>
+          <div class="frow"><label>Minat &amp; Cara Belajar</label><input type="text" id="f-minat" placeholder="cth. suka eksperimen, visual learner, aktif berdiskusi"></div>
+          <div class="frow"><label>Kondisi Lingkungan Belajar</label><input type="text" id="f-lingkungan" placeholder="cth. sekolah perkotaan, akses internet memadai, ada lab IPA"></div>
+          <div class="frow">
+            <label>Dimensi Profil Lulusan</label>
+            <div class="dpl-grid">
+              <label class="dpl-item"><input type="checkbox" id="dpl1" value="DPL1 – Keimanan &amp; Ketakwaan"> DPL1 – Keimanan &amp; Ketakwaan</label>
+              <label class="dpl-item"><input type="checkbox" id="dpl2" value="DPL2 – Kewargaan"> DPL2 – Kewargaan</label>
+              <label class="dpl-item"><input type="checkbox" id="dpl3" value="DPL3 – Penalaran Kritis"> DPL3 – Penalaran Kritis</label>
+              <label class="dpl-item"><input type="checkbox" id="dpl4" value="DPL4 – Kreativitas"> DPL4 – Kreativitas</label>
+              <label class="dpl-item"><input type="checkbox" id="dpl5" value="DPL5 – Kolaborasi"> DPL5 – Kolaborasi</label>
+              <label class="dpl-item"><input type="checkbox" id="dpl6" value="DPL6 – Kemandirian"> DPL6 – Kemandirian</label>
+              <label class="dpl-item"><input type="checkbox" id="dpl7" value="DPL7 – Kesehatan"> DPL7 – Kesehatan</label>
+              <label class="dpl-item"><input type="checkbox" id="dpl8" value="DPL8 – Komunikasi"> DPL8 – Komunikasi</label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4. STRATEGI, SARPRAS & PEMANTIK -->
+      <div class="fgroup open" id="grp-strategi">
+        <div class="fgroup-head" onclick="toggleGroup('strategi')">
+          <span class="icon">⚙️</span>
+          <span class="label">Strategi, Sarpras &amp; Pemantik</span>
+          <span class="chev">▼</span>
+        </div>
+        <div class="fgroup-body">
+          <div class="frow"><label>Strategi / Model Pembelajaran</label><input type="text" id="f-strategi" placeholder="cth. PBL, Inquiry, Kooperatif, Diskusi Socratic"></div>
+          <div class="frow"><label>Platform Ujian / Asesmen Digital</label><input type="text" id="f-platform" placeholder="cth. Quizizz, Google Form, Moodle, manual"></div>
+          <div class="frow"><label>Sarana &amp; Prasarana</label><input type="text" id="f-sarpras" placeholder="cth. proyektor, lab IPA, torso, buku teks, tablet"></div>
+          <div class="frow"><label>Pertanyaan Pemantik</label><textarea id="f-pemantik" rows="2" placeholder="cth. Mengapa perut bisa berbunyi saat lapar?"></textarea></div>
+        </div>
+      </div>
+
+    </div><!-- end sidebar-scroll -->
+
+    <!-- ACTION BAR -->
+    <div class="action-bar">
+      <button class="btn btn-primary" id="btn-generate" onclick="generateRPD()">
+        <span>✦</span> Generate RPD dengan AI
+      </button>
+      <div class="progress-bar-wrap" id="prog-wrap"><div class="progress-bar indeterminate" id="prog-bar"></div></div>
+      <div class="btn-row">
+        <button class="btn btn-ghost" onclick="resetForm()">↺ Reset</button>
+        <button class="btn btn-outline" onclick="isiContohData()">🎯 Contoh Data</button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ══ MAIN PREVIEW ══ -->
+  <main class="main">
+    <div class="preview-hdr">
+      <h2>Pratinjau Dokumen RPD</h2>
+      <div class="preview-actions">
+        <button class="btn btn-ghost" onclick="toggleEdit()">✏️ Edit</button>
+        <button class="btn btn-ghost" onclick="copyRPD()">📋 Salin</button>
+        <button class="btn btn-outline" onclick="exportWord()">⬇ Word</button>
+        <button class="btn btn-secondary" onclick="window.print()">🖨 Print</button>
+      </div>
+    </div>
+
+    <div id="preview-placeholder" class="placeholder">
+      <div class="ph-icon">📄</div>
+      <h3>Dokumen RPD Belum Dibuat</h3>
+      <p>Isi form ringkas di samping, lalu tekan <strong>Generate RPD dengan AI</strong> untuk menghasilkan dokumen lengkap secara otomatis.</p>
+    </div>
+
+    <div id="rpd-output"></div>
+  </main>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+// ── GROUP TOGGLE ──
+function toggleGroup(name) {
+  const el = document.getElementById('grp-' + name);
+  el.classList.toggle('open');
+}
+
+// ── HELPERS ──
+function v(id) { const e = document.getElementById(id); return e ? (e.value||'').trim() : ''; }
+function showToast(msg, dur=2800) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), dur);
+}
+function setLoading(on) {
+  const btn = document.getElementById('btn-generate');
+  const pw  = document.getElementById('prog-wrap');
+  if (on) {
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Menyusun RPD...';
+    pw.style.display = 'block';
+  } else {
+    btn.disabled = false;
+    btn.innerHTML = '<span>✦</span> Generate RPD dengan AI';
+    pw.style.display = 'none';
+  }
+}
+
+// ── BUILD PROMPT ──
+function buildPrompt(data) {
+  const dplList = data.dpl.length ? data.dpl.join(', ') : 'Penalaran Kritis, Kolaborasi, Kemandirian';
+  return `Kamu adalah ahli kurikulum pendidikan Indonesia yang menyusun Rencana Pembelajaran Mendalam (RPD) sesuai kebijakan BSKAP Kemendikbudristek.
+
+Susun dokumen RPD LENGKAP berformat HTML dengan struktur BSKAP berikut. Tulis SEMUA bagian dengan narasi profesional, rinci, dan mengalir. Jangan gunakan placeholder atau ellipsis. Setiap bagian HARUS berisi narasi yang substantif.
+
+DATA INPUT GURU:
+- Penyusun: ${data.penyusun}
+- Kepala Sekolah: ${data.kepsek || '(nama kepala sekolah)'}
+- Sekolah: ${data.sekolah || '(nama sekolah)'}
+- Tahun Pelajaran: ${data.tahun} Semester ${data.semester}
+- Mata Pelajaran: ${data.mapel}
+- Kelas / Fase: ${data.kelas} / Fase ${data.fase}
+- Topik / Elemen: ${data.topik}
+- Alokasi Waktu: ${data.waktu || '2 × 40 menit'}
+- Tujuan Pembelajaran: ${data.tp}
+- Target Siswa: ${data.target || 'Kelas reguler, kemampuan heterogen'}
+- Dimensi Profil Lulusan: ${dplList}
+- Minat & Cara Belajar: ${data.minat || 'Beragam, cenderung visual dan kinestetik'}
+- Kondisi Lingkungan: ${data.lingkungan || 'Sekolah dengan fasilitas standar'}
+- Strategi/Model: ${data.strategi || 'Inkuiri terbimbing dan kooperatif'}
+- Platform Asesmen: ${data.platform || 'Manual + digital sederhana'}
+- Sarpras: ${data.sarpras || 'Buku teks, papan tulis, alat peraga'}
+- Pertanyaan Pemantik: ${data.pemantik || '(buat pertanyaan pemantik yang relevan)'}
+
+INSTRUKSI FORMAT OUTPUT:
+Keluarkan HANYA konten HTML di dalam <div class="rpd-doc"> (tanpa tag html/head/body). Gunakan class-class berikut persis seperti ini (jangan buat class baru):
+- Tabel identitas: <table class="id-table"> dengan <td> dua kolom
+- Heading seksi: <div class="rpd-sec-hd">
+- Sub-heading: <div class="rpd-sub">
+- Sub-sub heading (Memahami/Mengaplikasi/Merefleksi): <div class="rpd-subsub">
+- Field label+value: <div class="rpd-field"><div class="rpd-fl">Label</div><div class="rpd-fv">Nilai</div></div>
+- Kotak narasi: <div class="rpd-box">
+- Tag DPL: <div class="dpl-tags"> dengan <span class="dpl-tag">
+
+STRUKTUR YANG HARUS DIHASILKAN (lengkapi semua bagian):
+
+<div class="rpd-masthead">
+  <div class="gov">Kementerian Pendidikan, Kebudayaan, Riset dan Teknologi — BSKAP</div>
+  <h1>RENCANA PEMBELAJARAN MENDALAM</h1>
+  <div class="sub">Deep Learning — Berkesadaran · Bermakna · Menggembirakan</div>
+</div>
+
+[IDENTITAS — tabel 7 baris: Penyusun, Sekolah, Tahun Pelajaran+Semester, Mata Pelajaran, Kelas/Fase, Topik/Elemen, Alokasi Waktu]
+
+[A. IDENTIFIKASI]
+- Peserta Didik: Kesiapan Belajar, Pengetahuan Awal, Minat, Latar Belakang, Kebutuhan Belajar (masing-masing 2–3 kalimat kontekstual)
+- Materi Pelajaran: Jenis Pengetahuan, Relevansi Kehidupan Nyata, Tingkat Kesulitan, Struktur Materi, Nilai Karakter
+- Dimensi Profil Lulusan: tampilkan sebagai dpl-tags
+
+[B. DESAIN PEMBELAJARAN]
+- Capaian Pembelajaran (2–3 kalimat)
+- Lintas Disiplin Ilmu (sebutkan minimal 3 mata pelajaran terkait beserta kaitannya)
+- Tujuan Pembelajaran (gunakan data dari input, susun ulang dengan format bernomor)
+- Topik Pembelajaran (sub-topik yang akan dibahas)
+- Praktik Pedagogis (jelaskan pendekatan secara rinci, 3–5 kalimat)
+- Kemitraan Pembelajaran (peran orang tua, komunitas, narasumber)
+- Lingkungan Pembelajaran (deskripsikan setting belajar)
+- Pemanfaatan Digital (platform dan cara penggunaannya)
+
+[C. PENGALAMAN BELAJAR]
+AWAL:
+- Prinsip Pembelajaran (1–2 kalimat)
+- Kegiatan Awal: rpd-box berisi 5–6 langkah bernomor yang konkret dan menyenangkan, termasuk penggunaan pertanyaan pemantik
+
+INTI:
+MEMAHAMI:
+- Prinsip (1 kalimat)
+- Aktivitas 1, 2, 3: masing-masing 2–3 kalimat deskriptif
+
+MENGAPLIKASI:
+- Prinsip (1 kalimat)
+- Aktivitas 1, 2, 3: masing-masing 2–3 kalimat deskriptif, berbasis masalah nyata
+
+MEREFLEKSI:
+- Prinsip (1 kalimat)
+- Aktivitas 1, 2, 3: masing-masing 2–3 kalimat, fokus metakognisi
+
+PENUTUP:
+- Prinsip (1 kalimat)
+- Kegiatan Penutup: rpd-box berisi 5–6 langkah bernomor termasuk konsolidasi, apresiasi, tugas lanjutan
+
+[D. ASESMEN PEMBELAJARAN]
+- Asesmen Awal (Diagnostik): rpd-box, 3–4 kalimat rinci tentang instrumen dan teknik
+- Asesmen Proses (Formatif): rpd-box, 3–4 kalimat
+- Asesmen Akhir (Sumatif): rpd-box, 3–4 kalimat termasuk bobot nilai
+
+[TANDA TANGAN — gunakan class sig-row, sig-block, sig-line, sig-nip]
+
+PENTING: Semua narasi harus:
+1. Menggunakan bahasa Indonesia formal dan baku
+2. Sesuai prinsip Deep Learning: Berkesadaran, Bermakna, Menggembirakan
+3. Kontekstual dengan mata pelajaran "${data.mapel}", topik "${data.topik}", dan karakteristik siswa yang diberikan
+4. Tidak mengulang-ulang kata yang sama
+5. Paragraf mengalir natural seperti dokumen resmi guru profesional`;
+}
+
+// ── GENERATE RPD (STREAMING) ──
+async function generateRPD() {
+  const penyusun = v('f-penyusun');
+  const mapel    = v('f-mapel');
+  const topik    = v('f-topik');
+  const tp       = v('f-tp');
+
+  if (!penyusun || !mapel || !topik || !tp) {
+    showToast('⚠️ Lengkapi: Nama Penyusun, Mata Pelajaran, Topik, dan Tujuan Pembelajaran.');
+    return;
+  }
+
+  const dpl = Array.from(document.querySelectorAll('.dpl-grid input:checked')).map(c => c.value);
+
+  const data = {
+    penyusun, mapel, topik, tp, dpl,
+    kepsek:    v('f-kepsek'),
+    sekolah:   v('f-sekolah'),
+    tahun:     v('f-tahun') || new Date().getFullYear() + '/' + (new Date().getFullYear()+1),
+    semester:  v('f-semester'),
+    kelas:     v('f-kelas'),
+    fase:      v('f-fase') || '—',
+    waktu:     v('f-waktu'),
+    target:    v('f-target'),
+    minat:     v('f-minat'),
+    lingkungan:v('f-lingkungan'),
+    strategi:  v('f-strategi'),
+    platform:  v('f-platform'),
+    sarpras:   v('f-sarpras'),
+    pemantik:  v('f-pemantik'),
+  };
+
+  setLoading(true);
+
+  const out = document.getElementById('rpd-output');
+  const ph  = document.getElementById('preview-placeholder');
+  ph.style.display = 'none';
+  out.style.display = 'block';
+  out.removeAttribute('contenteditable');
+  out.innerHTML = '<div class="rpd-doc" id="stream-target"><div style="text-align:center;padding:40px;color:var(--ink-muted)"><div style="font-size:36px;margin-bottom:12px">⚙️</div><p style="font-size:.85rem">AI sedang menyusun dokumen RPD Anda...<br>Mohon tunggu sebentar.</p></div></div>';
+  out.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 4000,
+        stream: true,
+        messages: [{ role: 'user', content: buildPrompt(data) }]
+      })
+    });
+
+    if (!response.ok) throw new Error('API error ' + response.status);
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let fullText = '';
+    const target = document.getElementById('stream-target');
+    target.innerHTML = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop();
+
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        const raw = line.slice(6).trim();
+        if (raw === '[DONE]') continue;
+        try {
+          const evt = JSON.parse(raw);
+          if (evt.type === 'content_block_delta' && evt.delta?.type === 'text_delta') {
+            fullText += evt.delta.text;
+            // Extract content inside rpd-doc if present, else render raw
+            const inner = extractBody(fullText);
+            target.innerHTML = inner + '<span class="stream-cursor"></span>';
+          }
+        } catch(e) { /* skip malformed */ }
+      }
+    }
+
+    // Final clean render
+    const finalInner = extractBody(fullText);
+    target.innerHTML = finalInner;
+    setLoading(false);
+    showToast('✅ RPD berhasil dibuat!');
+
+  } catch(err) {
+    console.error(err);
+    setLoading(false);
+    out.innerHTML = `<div class="rpd-doc" style="text-align:center;padding:40px">
+      <div style="font-size:36px;margin-bottom:12px">❌</div>
+      <p style="font-size:.85rem;color:#c0392b">Gagal menghubungi API. Periksa koneksi internet Anda.</p>
+      <p style="font-size:.75rem;color:var(--ink-muted);margin-top:8px">${err.message}</p>
+    </div>`;
+    showToast('❌ Gagal generate RPD. Cek koneksi internet.');
+  }
+}
+
+function extractBody(html) {
+  // Try to extract content inside <div class="rpd-doc">
+  const m = html.match(/<div class="rpd-doc"[^>]*>([\s\S]*)/i);
+  if (m) {
+    // Remove closing tag if present
+    return m[1].replace(/<\/div>\s*$/, '');
+  }
+  // Fallback: strip common wrapper tags
+  return html.replace(/^```html?\s*/i,'').replace(/```\s*$/,'').trim();
+}
+
+// ── TOGGLE EDIT ──
+function toggleEdit() {
+  const out = document.getElementById('rpd-output');
+  if (!out.innerHTML.trim() || out.style.display === 'none') { showToast('⚠️ Generate RPD terlebih dahulu.'); return; }
+  const isEdit = out.getAttribute('contenteditable') === 'true';
+  if (isEdit) { out.removeAttribute('contenteditable'); showToast('💾 Mode edit dinonaktifkan.'); }
+  else { out.setAttribute('contenteditable','true'); out.focus(); showToast('✏️ Mode edit aktif.'); }
+}
+
+// ── RESET ──
+function resetForm() {
+  if (!confirm('Reset semua data form?')) return;
+  document.querySelectorAll('input[type=text], textarea').forEach(el => el.value = '');
+  document.querySelectorAll('select').forEach(el => el.selectedIndex = 0);
+  document.querySelectorAll('.dpl-grid input').forEach(el => el.checked = false);
+  document.getElementById('preview-placeholder').style.display = 'block';
+  const out = document.getElementById('rpd-output');
+  out.style.display = 'none'; out.innerHTML = '';
+  showToast('↺ Form berhasil direset.');
+}
+
+// ── COPY ──
+function copyRPD() {
+  const out = document.getElementById('rpd-output');
+  if (!out.innerHTML.trim()) { showToast('⚠️ Generate RPD terlebih dahulu.'); return; }
+  navigator.clipboard.writeText(out.innerText)
+    .then(() => showToast('📋 Teks RPD disalin!'))
+    .catch(() => showToast('❌ Gagal menyalin.'));
+}
+
+// ── EXPORT WORD ──
+function exportWord() {
+  const out = document.getElementById('rpd-output');
+  if (!out.innerHTML.trim()) { showToast('⚠️ Generate RPD terlebih dahulu.'); return; }
+  const html = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+  <head><meta charset='utf-8'><title>RPD BSKAP</title>
+  <style>body{font-family:Arial,sans-serif;font-size:11pt;line-height:1.6}
+  .rpd-masthead{text-align:center;margin-bottom:16pt;padding-bottom:10pt;border-bottom:2pt solid #000}
+  .rpd-masthead h1{font-size:14pt;font-weight:bold}
+  .rpd-sec-hd{background:#1a4a8a;color:#fff;padding:5pt 10pt;margin-top:12pt;font-weight:bold}
+  .rpd-sub{font-weight:bold;border-left:3pt solid #1a4a8a;padding-left:8pt;margin-top:8pt}
+  .rpd-subsub{font-weight:bold;background:#fdf3d8;display:inline-block;padding:2pt 8pt;margin-top:6pt}
+  .id-table{width:100%;border-collapse:collapse;margin:8pt 0}
+  .id-table td{border:1pt solid #ccc;padding:4pt 6pt;font-size:10pt}
+  .rpd-box{background:#f9f7f3;border:1pt solid #ccc;padding:6pt;margin:4pt 0}
+  .rpd-fl{font-weight:bold;font-size:10pt;color:#444}
+  .rpd-fv{padding-left:6pt;font-size:10pt}
+  .dpl-tag{display:inline-block;margin:2pt;padding:1pt 6pt;background:#e8eef8;border:1pt solid #b0c4e0;border-radius:10pt;font-size:9pt}
+  .sig-row{display:flex;justify-content:space-between;margin-top:24pt}
+  .gov{font-size:8pt;color:#888;letter-spacing:0.08em;text-transform:uppercase}
+  .sub{font-size:9pt;color:#1a4a8a;font-weight:bold;letter-spacing:0.1em;text-transform:uppercase}</style>
+  </head><body><div class="rpd-doc">${out.innerHTML}</div></body></html>`;
+  const blob = new Blob(['\ufeff' + html], { type: 'application/msword' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = 'RPD-BSKAP.doc'; a.click();
+  URL.revokeObjectURL(url);
+  showToast('⬇️ File Word berhasil diunduh!');
+}
+
+// ── CONTOH DATA ──
+function isiContohData() {
+  const set = (id, val) => { const e = document.getElementById(id); if(e) e.value = val; };
+  set('f-penyusun',  'Sari Dewi Rahayu, S.Pd., M.Pd.');
+  set('f-kepsek',    'Drs. H. Ahmad Fauzi, M.M.');
+  set('f-sekolah',   'SMP Negeri 3 Bandung');
+  set('f-tahun',     '2025/2026');
+  document.getElementById('f-semester').value = 'Ganjil';
+  set('f-mapel',     'Ilmu Pengetahuan Alam (IPA)');
+  set('f-kelas',     'VIII');
+  document.getElementById('f-fase').value = 'D';
+  set('f-waktu',     '4 × 40 menit (4 JP)');
+  set('f-topik',     'Sistem Pencernaan pada Manusia');
+  set('f-tp',        '1. Mengidentifikasi organ-organ sistem pencernaan beserta fungsinya\n2. Menjelaskan perbedaan pencernaan mekanik dan kimiawi\n3. Menganalisis pengaruh pola makan terhadap kesehatan pencernaan\n4. Merancang menu makanan sehat berdasarkan gizi seimbang');
+  set('f-target',    '32 siswa kelas VIII, kemampuan heterogen, 3 siswa berkebutuhan khusus');
+  set('f-minat',     'Suka eksperimen, tertarik kesehatan & makanan, aktif di media sosial');
+  set('f-lingkungan','Sekolah perkotaan, tersedia lab IPA, akses internet memadai, LCD proyektor');
+  ['dpl3','dpl4','dpl5','dpl6','dpl7'].forEach(id => { const e = document.getElementById(id); if(e) e.checked = true; });
+  ['dpl1','dpl2','dpl8'].forEach(id => { const e = document.getElementById(id); if(e) e.checked = false; });
+  set('f-strategi',  'Problem-Based Learning (PBL), Inquiry terbimbing, Think-Pair-Share');
+  set('f-platform',  'Quizizz untuk kuis formatif, Google Form untuk asesmen akhir');
+  set('f-sarpras',   'Torso/poster sistem pencernaan, larutan iodine, tabung reaksi, buku teks, LCD');
+  set('f-pemantik',  'Mengapa perut bisa berbunyi saat lapar? Ke mana perginya makanan yang kita makan setelah ditelan?');
+
+  showToast('🎯 Contoh data terisi! Tekan Generate RPD dengan AI.');
+}
+</script>
+</body>
+</html>
