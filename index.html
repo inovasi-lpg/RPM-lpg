@@ -330,12 +330,11 @@
         feather.replace();
 
         // ==========================================================
-        // KONFIGURASI KUNCI API GEMINI (DIKONTROL OLEH DEVELOPER)
+        // URL BACKEND GOOGLE APPS SCRIPT (PROXY AI UTAMA)
         // ==========================================================
-        // API Key ini akan tertanam dan langsung aktif saat Anda hosting web ini.
-        // Pengunjung website Anda tidak perlu lagi mengisi API Key secara manual.
-        const DEFAULT_API_KEY = "AIzaSyCDjOeiCRf3-qFrJIh5dHrapcTFR4Q6tlQ";
-        const DEFAULT_MODEL = "gemini-1.5-flash"; // Model stabil & ekonomis untuk produksi
+        // Kami mengalihkan pemanggilan API Gemini secara tertutup melalui Google Apps Script 
+        // sehingga API Key tetap aman, tidak terekspos di client, dan bebas dari error CORS.
+        const BACKEND_API_URL = "https://script.google.com/macros/s/AKfycbw0UpY7HwIGxkesQqdY0H0n0hgYid296N00YYvOmX6flGFl9AC1m9bQri_S8tfduZbq/exec";
 
         let currentResultText = "";
 
@@ -376,7 +375,7 @@
                 const requestPromise = document.documentElement.requestFullscreen();
                 if (requestPromise !== undefined) {
                     requestPromise.catch(err => {
-                        els.errorMessage.innerText = "Fitur layar penuh tidak didukung di lingkungan pratinjau ini (diblokir oleh kebijakan izin peramban). Fitur ini akan berfungsi setelah website di-hosting atau dibuka di tab baru.";
+                        els.errorMessage.innerText = "Fitur layar penuh tidak didukung di lingkungan pratinjau ini. Fitur ini akan berfungsi normal setelah website di-hosting atau dibuka di tab baru.";
                         els.errorAlert.classList.remove('hidden');
                         setTimeout(() => {
                             els.errorAlert.classList.add('hidden');
@@ -427,7 +426,7 @@
             document.getElementById('sarpras').value = "Proyektor, Laptop, Tali Meteran, Kertas Grid, Penggaris, LKPD.";
             document.getElementById('pemantik').value = "Pernahkah kalian melihat layar perahu nelayan? Mengapa tiang dan tali pengikatnya membentuk segitiga siku-siku? Bagaimana cara tahu panjang tali tanpa harus mengukurnya langsung?";
             
-            // Opsional: Buat efek kedip halus untuk menunjukkan data telah terisi
+            // Efek kedip halus untuk menunjukkan data telah terisi
             const formInputs = document.querySelectorAll('.input-field, textarea, select');
             formInputs.forEach(input => {
                 input.classList.add('bg-indigo-50');
@@ -437,77 +436,39 @@
             });
         });
 
-        // Fetch Data dengan Perlindungan Ganda & Automasi API Key
-        const fetchWithBackoff = async (prompt, retries = 3) => {
+        // Request Penulisan Konten dengan Backoff Menggunakan Backend Google Apps Script (Bebas CORS & API Key Client-Side)
+        const fetchAIContent = async (prompt, retries = 3) => {
             const delays = [1000, 2000, 4000];
-            
-            // Deteksi ketat jika berjalan di platform internal Canvas / Preview Studio
-            const isCanvasEnv = window.location.hostname === "" || window.location.hostname.includes("googleusercontent") || window.location.hostname.includes("gstatic");
-
-            let activeKey = DEFAULT_API_KEY;
-            let selectedModel = DEFAULT_MODEL;
-
-            // Jika di dalam Canvas, gunakan aturan penguji preview
-            if (isCanvasEnv) {
-                activeKey = ""; // Mengosongkan key agar lingkungan preview menyuntikkan key-nya sendiri
-                selectedModel = "gemini-2.5-flash-preview-09-2025";
-            }
-            
-            const fallbackChain = isCanvasEnv ? [selectedModel] : [selectedModel, "gemini-1.5-pro", "gemini-1.5-flash"];
-            const uniqueModels = [...new Set(fallbackChain)]; 
-            let currentModelIndex = 0;
-            
-            const systemPrompt = "Anda adalah asisten AI spesialis Rencana Pembelajaran Mendalam (RPM) tingkat lanjut. Anda WAJIB mematuhi seluruh struktur dan tag HTML/tabel yang diminta pengguna secara absolut. Pada bagian 'Pengalaman Belajar', Anda WAJIB menjabarkan SANGAT DETAIL dan KOMPREHENSIF (skenario lengkap guru dan siswa, tidak boleh sekilas). Isi data yang di dalam kurung (...). Gunakan bahasa Indonesia baku dan pedagogik.";
-            
-            const finalPrompt = systemPrompt + "\n\nINSTRUKSI:\n" + prompt;
-
-            const payload = {
-                contents: [{ parts: [{ text: finalPrompt }] }]
-            };
-
-            const options = {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            };
 
             for (let i = 0; i < retries; i++) {
                 try {
-                    let currentTestModel = uniqueModels[currentModelIndex];
-                    const url = `https://generativelanguage.googleapis.com/v1beta/models/${currentTestModel}:generateContent?key=${activeKey}`;
-                    const response = await fetch(url, options);
-                    
-                    if (!response.ok) {
-                        const errorData = await response.json();
-                        console.error(`API Error Log (${currentTestModel}):`, errorData); 
-                        
-                        if (response.status === 404) {
-                            if (currentModelIndex < uniqueModels.length - 1) {
-                                if (els.loadingText) els.loadingText.innerText = `Menyesuaikan model AI... Mencoba alternatif lain...`;
-                                currentModelIndex++;
-                                i--; 
-                                continue;
-                            } else {
-                                throw new Error(`Model AI tidak ditemukan (Error 404). Pastikan "Generative Language API" sudah AKTIF di Google Cloud Console untuk API Key tersebut.`);
-                            }
-                        }
-                        
-                        if (response.status === 403) {
-                            throw new Error("Akses ditolak (Error 403). API Key yang tertanam pada sistem tidak valid atau telah diblokir.");
-                        }
+                    // Mengirimkan permintaan POST menuju Google Apps Script Web App
+                    const response = await fetch(BACKEND_API_URL, {
+                        method: 'POST',
+                        mode: 'cors',
+                        headers: {
+                            'Content-Type': 'text/plain;charset=utf-8' // Menghindari pre-flight CORS di Google Apps Script
+                        },
+                        body: JSON.stringify({
+                            action: "generateRPM",
+                            prompt: prompt
+                        })
+                    });
 
-                        if (response.status === 400 && errorData.error?.message?.includes("API key")) {
-                            throw new Error("API Key sistem tidak valid (Error 400). Mohon periksa kembali konfigurasi developer.");
-                        } 
-                        
-                        throw new Error(`Gagal terhubung ke AI (Error ${response.status}): ${errorData.error?.message || 'Kesalahan server'}`);
+                    if (!response.ok) {
+                        throw new Error(`Koneksi Backend Gagal (Status: ${response.status}).`);
                     }
+
+                    const result = await response.json();
                     
-                    const data = await response.json();
-                    return data.candidates?.[0]?.content?.parts?.[0]?.text || "Gagal memproses respons AI.";
+                    if (result.status === "error") {
+                        throw new Error(result.message || "Gagal memproses data dari AI.");
+                    }
+
+                    return result.text;
                 } catch (error) {
-                    if (i === retries - 1 || error.message.includes("AKTIF di Google Cloud") || error.message.includes("tidak valid") || error.message.includes("ditolak")) {
-                        throw new Error(error.message || "Gagal terhubung ke server AI. Periksa koneksi internet Anda.");
+                    if (i === retries - 1) {
+                        throw new Error(error.message || "Gagal terhubung ke server AI pendukung. Harap pastikan setup backend GAS Anda sudah ter-deploy dengan benar.");
                     }
                     await new Promise(res => setTimeout(res, delays[i]));
                 }
@@ -764,7 +725,7 @@ Menutup pembelajaran dengan meminta siswa melakukan refleksi terhadap apa yang s
 
             try {
                 const prompt = generatePrompt(formData);
-                const result = await fetchWithBackoff(prompt);
+                const result = await fetchAIContent(prompt);
                 
                 currentResultText = result;
                 els.resultContent.innerHTML = formatMarkdown(result);
@@ -774,7 +735,7 @@ Menutup pembelajaran dengan meminta siswa melakukan refleksi terhadap apa yang s
             } catch (err) {
                 els.loadingState.classList.add('hidden');
                 els.emptyState.classList.remove('hidden');
-                els.errorMessage.innerText = err.message;
+                els.errorMessage.innerText = err.message + " Pastikan Web App Apps Script Anda sudah dipublikasikan ulang secara umum (Anyone) dengan API Key valid yang tersimpan di server.";
                 els.errorAlert.classList.remove('hidden');
             } finally {
                 els.submitBtn.disabled = false;
